@@ -7,6 +7,9 @@ import "core:os"
 import "core:time"
 import "core:math"
 import "core:bytes"
+import "core:mem"
+
+BUF_SIZE :: 20
 
 main :: proc(){
 	add := net.Address(net.IP4_Address({127,0,0,1}))
@@ -23,21 +26,44 @@ main :: proc(){
 	net.close(listen_socket)
 }
 
-handleMessages::proc(client_soc: net.TCP_Socket){
+parseHTTP :: proc (message:string) -> string{
+	segments, split_err := strings.split(message, " ")
+
+	if split_err != nil {
+		fmt.panicf("split_err: %s", split_err)
+	}
+
+	switch segments[0] {
+		case "GET" : 
+			fmt.printf("GET\n")
+		case "POST" :
+			fmt.printf("GET\n")
+		case "HEAD"
+			fmt.printf("HEAD\n")
+		case "PUT"
+			fmt.printf("PUT\n")
+		case "DELETE"
+			fmt.printf("DELETE\n")
+	}
+
+	return message
+}
+
+handleMessages :: proc(client_soc: net.TCP_Socket){
 	time_now := time.now()
 	for{
 		duration : time.Duration = time.since(time_now)
-		buf : [8]byte
+		buf : [BUF_SIZE]byte
 		my_str : string
 
 		bytes_recv, recv_tcp_error := net.recv_tcp(client_soc, buf[:])
-
 		if recv_tcp_error != nil{
 			fmt.printf("recv_tcp_error : %s", recv_tcp_error)
 		}
 
-		bytes_sent, send_tcp_error := net.send_tcp(client_soc, buf[:])
+		message := parseHTTP(strings.clone_from_bytes(buf[0:bytes_recv]))
 
+		bytes_sent, send_tcp_error := net.send_tcp(client_soc, transmute([]u8)(message))
 		if send_tcp_error != nil{
 			fmt.printf("send_tcp_error : %s", send_tcp_error)
 		}
