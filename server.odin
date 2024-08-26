@@ -9,7 +9,7 @@ import "core:math"
 import "core:bytes"
 import "core:mem"
 
-BUF_SIZE :: 20
+BUF_SIZE :: 100
 
 main :: proc(){
 	add := net.Address(net.IP4_Address({127,0,0,1}))
@@ -37,12 +37,12 @@ parseHTTP :: proc (message:string) -> string{
 		case "GET" : 
 			fmt.printf("GET\n")
 		case "POST" :
-			fmt.printf("GET\n")
-		case "HEAD"
+			fmt.printf("POST\n")
+		case "HEAD" : 
 			fmt.printf("HEAD\n")
-		case "PUT"
+		case "PUT" : 
 			fmt.printf("PUT\n")
-		case "DELETE"
+		case "DELETE" : 
 			fmt.printf("DELETE\n")
 	}
 
