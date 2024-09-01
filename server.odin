@@ -1,5 +1,4 @@
 package main
-
 import "core:fmt"
 import "core:net"
 import "core:strings"
@@ -11,7 +10,8 @@ import "core:mem"
 import "core:sort"
 import "core:strconv"
 
-BUF_SIZE :: 1024
+BUF_SIZE :: 10240
+debug :: 1
 
 Response :: struct{
 	path : string,
@@ -22,8 +22,8 @@ Response :: struct{
 
 main :: proc(){
 	add := net.Address(net.IP4_Address({127,0,0,1}))
-	myEnd:net.Endpoint = {add, 8000}
-	listen_socket, listen_error := net.listen_tcp(myEnd)
+	Endpoint:net.Endpoint = {add, 8000}
+	listen_socket, listen_error := net.listen_tcp(Endpoint)
 
 	if listen_error != nil {
 		fmt.printf("listen_error: %s", listen_error)
@@ -39,21 +39,24 @@ handle_GET :: proc(segments:[]string, response:^Response){
 	path:= segments[0]
 	path = strings.trim_right(path, "\n")
 
-	myfile := strings.concatenate({os.get_current_directory(),path})
+	full_file_path := strings.concatenate({os.get_current_directory(),path})
 
-	fmt.println("\n\n%s", path)
+	if os.exists(full_file_path){
+		file, ferr := os.open(full_file_path)
+		if ferr != 0{
+			fmt.panicf("error: %d", ferr)
+		}
+		data, err := os.read_entire_file_from_handle(file)
 
-	file, ferr := os.open(myfile)
-	if ferr != 0{
-		fmt.panicf("error: %d", ferr)
+		file_data := strings.clone_from_bytes(data)
+
+		response.data = file_data
+	}
+	else {
+		response.response_line = "404 NOT_FOUND"
 	}
 
-	data, err := os.read_entire_file_from_handle(file)
-
-	mydata := strings.clone_from_bytes(data)
-
-	response.data = mydata
-	response.path = myfile
+	response.path = full_file_path
 
 	handle_HEAD(segments, response)
 }
@@ -61,7 +64,8 @@ handle_GET :: proc(segments:[]string, response:^Response){
 handle_HEAD :: proc(segments:[]string, response:^Response){
 	file, file_error := os.open(response.path)
 	file_size, file_size_error := os.file_size(file)
-	my_string := fmt.tprint(file_size)
+
+	filesize_string := fmt.tprint(file_size)
 
 	response_header : string 
 
@@ -75,13 +79,14 @@ handle_HEAD :: proc(segments:[]string, response:^Response){
 		response_header = "Content-Type : text/javascript"
 	}
 
-	response_header = strings.concatenate({response_header,"\n", "Content-Length : ", my_string})
-	response.response_line = "200 OK"
+	response_header = strings.concatenate({response_header,"\n", "Content-Length : ", filesize_string})
+	if (response.response_line) == "" {
+		response.response_line = "200 OK"
+	}
 	response.headers = response_header
 }
 
 Send_Response :: proc(response:^Response) -> string{
-	fmt.println(response)
 	Response:string = strings.concatenate({"HTTP/1.1 ", response.response_line, "\n", response.headers,"\n", "\r\n", response.data})
 	return Response
 }
@@ -110,15 +115,26 @@ handleMessages :: proc(client_soc: net.TCP_Socket){
 	for{
 		duration : time.Duration = time.since(time_now)
 		buf : [BUF_SIZE]byte
-		my_str : string
 
 		bytes_recv, recv_tcp_error := net.recv_tcp(client_soc, buf[:])
+
+		message := parseHTTP(strings.clone_from_bytes(buf[0:bytes_recv]))
+
+		when debug == 1{
+			fmt.println("---------------------------------------------- REQUEST -------------------------------------------")
+			fmt.printf("\n\n %s", strings.clone_from_bytes(buf[0:bytes_recv]))
+		}
+
 		if recv_tcp_error != nil{
 			fmt.printf("recv_tcp_error : %s", recv_tcp_error)
 		}
 
-		message := parseHTTP(strings.clone_from_bytes(buf[0:bytes_recv]))
-		fmt.printf("\n\n %s, Response: %s", strings.clone_from_bytes(buf[0:bytes_recv]), (transmute([]u8)message))
+		message = parseHTTP(strings.clone_from_bytes(buf[0:bytes_recv]))
+
+		when debug == 1{
+			fmt.println("---------------------------------------------- RESPONSE -------------------------------------------")
+			fmt.printf("\n\n %s", (transmute([]u8)message))
+		}
 
 
 		bytes_sent, send_tcp_error := net.send_tcp(client_soc, transmute([]u8)(message))
