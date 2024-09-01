@@ -41,6 +41,8 @@ handle_GET :: proc(segments:[]string, response:^Response){
 
 	myfile := strings.concatenate({os.get_current_directory(),path})
 
+	fmt.println("\n\n%s", path)
+
 	file, ferr := os.open(myfile)
 	if ferr != 0{
 		fmt.panicf("error: %d", ferr)
@@ -60,7 +62,19 @@ handle_HEAD :: proc(segments:[]string, response:^Response){
 	file, file_error := os.open(response.path)
 	file_size, file_size_error := os.file_size(file)
 	my_string := fmt.tprint(file_size)
-	response_header := "Content-Type : text/html"
+
+	response_header : string 
+
+	if strings.contains(response.path,"http"){
+		response_header = "Content-Type : text/html"
+	}
+	if strings.contains(response.path,"css"){
+		response_header = "Content-Type : text/css"
+	}
+	if strings.contains(response.path,"js"){
+		response_header = "Content-Type : text/javascript"
+	}
+
 	response_header = strings.concatenate({response_header,"\n", "Content-Length : ", my_string})
 	response.response_line = "200 OK"
 	response.headers = response_header

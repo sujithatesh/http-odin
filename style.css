@@ -1,0 +1,49 @@
+#up{
+    color:blue;
+}
+#down{
+    color:blue;
+}
+#match{
+    width: 600px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 20px;
+}
+
+.level{
+    padding:20px;
+}
+
+.vs{
+    padding: 20px;
+    width: 50%;
+}
+.bracket{
+    display: flex;
+    background-color: beige;
+    border: 2px black solid;
+    width: 230px;
+    height: 70px;
+    margin-left: 20px;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.bracket :hover{
+    background-color: red; }
+
+.winner{
+    background-color: rgb(245, 116, 116);
+}
+
+.hide {
+    display: none;
+}
+
+.final{
+    background-color: greenyellow;
+}
